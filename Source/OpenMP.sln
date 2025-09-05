@@ -1,0 +1,25 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36408.4
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{222FD7D4-E6D9-4744-A4BA-440028ECE5BD}") = "OpenMP", "OpenMP.csproj", "{7DF0260D-90DA-4B71-A968-0BF9FD9ABF35}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7DF0260D-90DA-4B71-A968-0BF9FD9ABF35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DF0260D-90DA-4B71-A968-0BF9FD9ABF35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DF0260D-90DA-4B71-A968-0BF9FD9ABF35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DF0260D-90DA-4B71-A968-0BF9FD9ABF35}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {05A9155C-73EC-4B6D-AE90-598ED6328FAF}
+	EndGlobalSection
+EndGlobal
