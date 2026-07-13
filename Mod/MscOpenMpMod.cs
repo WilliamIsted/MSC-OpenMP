@@ -12,6 +12,7 @@ namespace MscOpenMp.Mod
         public override string Version => ModInfo.ClientVersion;
 
         Ui.ConnectChatUi _ui;
+        Sync.PlayerSync _playerSync;
 
         // NOTE: MSCLoader.Mod.OnLoad/Update/OnGUI are `internal virtual` in this
         // MSCLoader version (verified via ilspycmd against libs/MSCLoader.dll,
@@ -26,8 +27,18 @@ namespace MscOpenMp.Mod
             SetupFunction(Setup.OnGUI, OnDrawGui);
         }
 
-        void OnLoad() { _ui = new Ui.ConnectChatUi(); }
-        void OnUpdate() { if (_ui != null) _ui.Pump(); }
+        void OnLoad()
+        {
+            _ui = new Ui.ConnectChatUi();
+            _playerSync = new Sync.PlayerSync(() => _ui.Transport, () => _ui.Connected);
+        }
+        void OnUpdate()
+        {
+            if (_ui == null) return;
+            _ui.Pump();
+            _playerSync.Tick();
+            _ui.Registry.Tick();
+        }
         void OnDrawGui() { if (_ui != null) _ui.Draw(); }
     }
 }
