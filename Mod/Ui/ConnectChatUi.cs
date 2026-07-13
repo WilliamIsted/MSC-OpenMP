@@ -15,6 +15,7 @@ namespace MscOpenMp.Mod.Ui
         readonly List<string> _log = new List<string>();
         readonly Dictionary<uint, string> _names = new Dictionary<uint, string>();
         bool _connected;
+        bool _connecting;
         Rect _win = new Rect(20, 20, 420, 320);
         Vector2 _scroll;
 
@@ -24,12 +25,27 @@ namespace MscOpenMp.Mod.Ui
 
         void ConnectClicked()
         {
+            if (_transport != null) _transport.Close();
+            _connecting = true;
             var t = new WsTransport();
             _transport = t;
             t.Connected += () => _queue.Post(() =>
-                t.Send(new Hello { Version = ProtocolInfo.Version, ClientVersion = ModInfo.ClientVersion, Name = _name }.Encode()));
-            t.FrameReceived += bytes => _queue.Post(() => OnFrame(bytes));
-            t.Closed += reason => _queue.Post(() => { _connected = false; Log("Disconnected: " + reason); });
+            {
+                if (!ReferenceEquals(t, _transport)) return;
+                t.Send(new Hello { Version = ProtocolInfo.Version, ClientVersion = ModInfo.ClientVersion, Name = _name }.Encode());
+            });
+            t.FrameReceived += bytes => _queue.Post(() =>
+            {
+                if (!ReferenceEquals(t, _transport)) return;
+                OnFrame(bytes);
+            });
+            t.Closed += reason => _queue.Post(() =>
+            {
+                if (!ReferenceEquals(t, _transport)) return;
+                _connected = false;
+                _connecting = false;
+                Log("Disconnected: " + reason);
+            });
             t.Connect(_url);
             Log("Connecting to " + _url + " ...");
         }
@@ -49,15 +65,18 @@ namespace MscOpenMp.Mod.Ui
                             // client-compat rule v1: exact match; relay doesn't enforce, we do
                             Log("Version mismatch: " + p.Name + " runs " + p.ClientVersion + ", you run " + ModInfo.ClientVersion);
                             _transport.Close();
+                            _connecting = false;
                             return;
                         }
                     _connected = true;
+                    _connecting = false;
                     _names.Clear();
                     foreach (var p in w.Peers) _names[p.Id] = p.Name;
                     Log("Connected. Players online: " + (w.Peers.Length + 1));
                     break;
                 case MsgType.Reject:
                     Log("Rejected: " + Reject.Decode(r).Reason);
+                    _connecting = false;
                     break;
                 case MsgType.PeerJoined:
                     var pj = PeerJoined.Decode(r);
@@ -97,7 +116,9 @@ namespace MscOpenMp.Mod.Ui
             {
                 GUILayout.Label("Server:"); _url = GUILayout.TextField(_url);
                 GUILayout.Label("Name:"); _name = GUILayout.TextField(_name);
+                GUI.enabled = !_connecting;
                 if (GUILayout.Button("Connect")) ConnectClicked();
+                GUI.enabled = true;
             }
             _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(180));
             foreach (var line in _log) GUILayout.Label(line);
