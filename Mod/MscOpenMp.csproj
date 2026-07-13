@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net35</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <RootNamespace>MscOpenMp.Mod</RootNamespace>
+    <AssemblyName>MscOpenMp</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+    <ProjectReference Include="..\Protocol\Protocol.csproj" />
+    <Reference Include="MSCLoader"><HintPath>libs\MSCLoader.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>libs\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="websocket-sharp"><HintPath>libs\websocket-sharp.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
