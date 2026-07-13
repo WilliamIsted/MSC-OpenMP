@@ -21,7 +21,8 @@ namespace MscOpenMp.Mod.Ui
 
         public void Pump() { _queue.DrainOnMainThread(); }
 
-        void Log(string s) { _log.Add(s); if (_log.Count > 200) _log.RemoveAt(0); }
+        // newest-first so the latest message is visible without scrolling
+        void Log(string s) { _log.Insert(0, s); if (_log.Count > 200) _log.RemoveAt(_log.Count - 1); }
 
         void ConnectClicked()
         {
