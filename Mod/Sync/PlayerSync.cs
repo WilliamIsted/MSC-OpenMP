@@ -50,7 +50,8 @@ namespace MscOpenMp.Mod.Sync
                 PosX = _player.position.x, PosY = _player.position.y, PosZ = _player.position.z,
                 Yaw = _player.eulerAngles.y,
                 Pitch = _camera.localEulerAngles.x,
-                Stance = (byte)Mathf.Clamp(Mathf.RoundToInt((_camera.position.y - _player.position.y) * 100f), 0, 255)
+                Stance = (byte)Mathf.Clamp(Mathf.RoundToInt((_camera.position.y - _player.position.y) * 100f), 0, 255),
+                SentAtMs = Clock.NowMs()
             };
             var t = _transport();
             if (t != null)

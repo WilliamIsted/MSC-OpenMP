@@ -14,6 +14,11 @@ namespace MscOpenMp.Mod.Sync
         GameObject _rig; TextMesh _tag;
         ushort _lastSeq; bool _any;
         readonly string _name;
+        float _shownDelayMs = -1;
+
+        // ms between the sender stamping the rendered snapshot and now (network + interp buffer).
+        // Exact on shared clocks (same machine); skew-limited across machines.
+        public float ReplayDelayMs { get; private set; }
 
         public RemotePlayer(uint peerId, string name)
         {
@@ -68,6 +73,13 @@ namespace MscOpenMp.Mod.Sync
             // stance: squash capsule toward ground (stand=140 -> 1.0, prone=30 -> ~0.2)
             float sy = Mathf.Clamp(b.S.Stance / 140f, 0.2f, 1f);
             _rig.transform.localScale = new Vector3(1, sy, 1);
+            // replay delay: age of the snapshot pair being rendered (wrap-safe uint delta)
+            ReplayDelayMs = (uint)(Clock.NowMs() - b.S.SentAtMs);
+            if (Mathf.Abs(ReplayDelayMs - _shownDelayMs) > 15f) // avoid per-frame TextMesh churn
+            {
+                _shownDelayMs = ReplayDelayMs;
+                _tag.text = _name + " " + Mathf.RoundToInt(ReplayDelayMs) + "ms";
+            }
             // billboard nametag
             var cam = Camera.main;
             if (cam != null) _tag.transform.rotation = Quaternion.LookRotation(_tag.transform.position - cam.transform.position);
