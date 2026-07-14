@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MscOpenMp.Mod.Net;
+using MscOpenMp.Mod.Sync;
 using MscOpenMp.Protocol;
 using UnityEngine;
 
@@ -18,6 +19,10 @@ namespace MscOpenMp.Mod.Ui
         bool _connecting;
         Rect _win = new Rect(20, 20, 420, 320);
         Vector2 _scroll;
+
+        public readonly RemotePlayerRegistry Registry = new RemotePlayerRegistry();
+        public ITransport Transport { get { return _transport; } }
+        public bool Connected { get { return _connected; } }
 
         public void Pump() { _queue.DrainOnMainThread(); }
 
@@ -45,6 +50,7 @@ namespace MscOpenMp.Mod.Ui
                 if (!ReferenceEquals(t, _transport)) return;
                 _connected = false;
                 _connecting = false;
+                Registry.Clear();
                 Log("Disconnected: " + reason);
             });
             t.Connect(_url);
@@ -72,7 +78,8 @@ namespace MscOpenMp.Mod.Ui
                     _connected = true;
                     _connecting = false;
                     _names.Clear();
-                    foreach (var p in w.Peers) _names[p.Id] = p.Name;
+                    Registry.Clear();
+                    foreach (var p in w.Peers) { _names[p.Id] = p.Name; Registry.PeerJoined(p.Id, p.Name); }
                     Log("Connected. Players online: " + (w.Peers.Length + 1));
                     break;
                 case MsgType.Reject:
@@ -82,12 +89,14 @@ namespace MscOpenMp.Mod.Ui
                 case MsgType.PeerJoined:
                     var pj = PeerJoined.Decode(r);
                     _names[pj.Id] = pj.Name;
+                    Registry.PeerJoined(pj.Id, pj.Name);
                     Log(pj.Name + " joined" + (pj.ClientVersion != ModInfo.ClientVersion ? " (INCOMPATIBLE " + pj.ClientVersion + ")" : ""));
                     break;
                 case MsgType.PeerLeft:
                     var pl = PeerLeft.Decode(r);
                     string name;
                     if (_names.TryGetValue(pl.Id, out name)) { Log(name + " left"); _names.Remove(pl.Id); }
+                    Registry.PeerLeft(pl.Id);
                     break;
                 case MsgType.Chat:
                     var c = Chat.Decode(r);
@@ -95,7 +104,14 @@ namespace MscOpenMp.Mod.Ui
                     if (!_names.TryGetValue(c.FromId, out from)) from = "You";
                     Log(from + ": " + c.Text);
                     break;
-                // MsgType.Relayed intentionally ignored in M1 — sync plans consume it
+                case MsgType.Relayed:
+                    var rd = Relayed.Decode(r);
+                    if (rd.Channel == Channels.StateSnapshot)
+                    {
+                        try { Registry.OnSnapshot(rd.FromId, PlayerSnapshot.DecodePayload(new PacketReader(rd.Payload))); }
+                        catch (System.IO.EndOfStreamException) { /* malformed game payload: ignore per spec */ }
+                    }
+                    break;
             }
         }
 
