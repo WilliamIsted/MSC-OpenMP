@@ -11,7 +11,7 @@ namespace MscOpenMp.Mod.Sync
 
         const float ExtrapCap = 0.25f;
         // adaptive interp buffer: covers THIS sender's observed arrival jitter only
-        const float MinDelay = 0.06f, MaxDelay = 0.30f;
+        const float MinDelay = 0.04f, MaxDelay = 0.30f;
         readonly float[] _gaps = new float[20]; // ring of recent arrival gaps
         int _gapIdx; float _lastArrival = -1f;
         float _interpDelay = 0.15f; // start safe, converge to measured
@@ -86,9 +86,11 @@ namespace MscOpenMp.Mod.Sync
             // stance: squash capsule toward ground (stand=140 -> 1.0, prone=30 -> ~0.2)
             float sy = Mathf.Clamp(b.S.Stance / 140f, 0.2f, 1f);
             _rig.transform.localScale = new Vector3(1, sy, 1);
-            // replay delay: age of the snapshot pair being rendered (wrap-safe uint delta)
-            ReplayDelayMs = (uint)(Clock.NowMs() - b.S.SentAtMs);
-            if (Mathf.Abs(ReplayDelayMs - _shownDelayMs) > 15f) // avoid per-frame TextMesh churn
+            // replay delay: age of the snapshot pair being rendered (wrap-safe uint delta),
+            // EMA-smoothed so the readout doesn't bounce with sampling phase
+            float raw = (uint)(Clock.NowMs() - b.S.SentAtMs);
+            ReplayDelayMs = ReplayDelayMs <= 0f ? raw : Mathf.Lerp(ReplayDelayMs, raw, 0.05f);
+            if (Mathf.Abs(ReplayDelayMs - _shownDelayMs) > 5f)
             {
                 _shownDelayMs = ReplayDelayMs;
                 _tag.text = _name + " " + Mathf.RoundToInt(ReplayDelayMs) + "ms";
