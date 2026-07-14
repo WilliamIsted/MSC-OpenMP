@@ -8,7 +8,7 @@ namespace MscOpenMp.Mod.Sync
     // Samples the local PLAYER rig and streams 10 Hz snapshots over RELAY channel 2.
     public class PlayerSync
     {
-        const float SendInterval = 0.1f; // 10 Hz
+        const float SendInterval = 0.05f; // 20 Hz (27 B payload -> ~540 B/s; trivial)
         // Rig paths confirmed by Task 1 live probe (2026-07-14):
         const string PlayerPath = "PLAYER";                                    // position + yaw authority
         const string CameraPath = "PLAYER/Pivot/AnimPivot/Camera/FPSCamera";   // pitch + stance height

@@ -9,7 +9,12 @@ namespace MscOpenMp.Mod.Sync
     {
         struct Entry { public float T; public PlayerSnapshot S; }
 
-        const float InterpDelay = 0.15f, ExtrapCap = 0.25f;
+        const float ExtrapCap = 0.25f;
+        // adaptive interp buffer: covers THIS sender's observed arrival jitter only
+        const float MinDelay = 0.06f, MaxDelay = 0.30f;
+        readonly float[] _gaps = new float[20]; // ring of recent arrival gaps
+        int _gapIdx; float _lastArrival = -1f;
+        float _interpDelay = 0.15f; // start safe, converge to measured
         readonly List<Entry> _buf = new List<Entry>(); // ordered by arrival; small (<=32)
         GameObject _rig; TextMesh _tag;
         ushort _lastSeq; bool _any;
@@ -39,14 +44,22 @@ namespace MscOpenMp.Mod.Sync
         {
             if (_any && !NewerSeq(s.Seq, _lastSeq)) return; // stale: latest-wins
             _lastSeq = s.Seq; _any = true;
-            _buf.Add(new Entry { T = Time.time, S = s });
+            float now = Time.time;
+            if (_lastArrival >= 0) { _gaps[_gapIdx] = now - _lastArrival; _gapIdx = (_gapIdx + 1) % _gaps.Length; }
+            _lastArrival = now;
+            _buf.Add(new Entry { T = now, S = s });
             if (_buf.Count > 32) _buf.RemoveAt(0);
         }
 
         public void Tick()
         {
             if (_buf.Count == 0 || _rig == null) return;
-            float renderT = Time.time - InterpDelay;
+            // target = 2x worst recent gap; drift toward it slowly so render time never jumps
+            float worst = 0f;
+            for (int i = 0; i < _gaps.Length; i++) if (_gaps[i] > worst) worst = _gaps[i];
+            float target = worst > 0f ? Mathf.Clamp(worst * 2f, MinDelay, MaxDelay) : _interpDelay;
+            _interpDelay = Mathf.MoveTowards(_interpDelay, target, 0.05f * Time.deltaTime); // ponytail: 50 ms/s slew, retune if adaptation feels laggy
+            float renderT = Time.time - _interpDelay;
             // find bracketing pair
             Entry a = _buf[0], b = _buf[_buf.Count - 1];
             for (int i = _buf.Count - 1; i > 0; i--)
